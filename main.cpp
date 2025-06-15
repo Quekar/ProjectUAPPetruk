@@ -94,9 +94,6 @@ struct BattleState {
     int playerHp, playerSp, enemyHp, enemyState;
 };
 
-int main(){
-
-}
 vector<Weapon> weapons = {
     {"Sword", 0, 0, 0},
     {"Bow", 0, 0, 0},
@@ -303,7 +300,6 @@ void battle(Player &p) {
             cout << "=== Sp: " << p.sp << " === Undo Remaining: " << undoCount << " ===\n";
             cout << "[1] Basic Attack\n[2] Skill Attack\n[3] Heal (30% HP)\n[4] Undo\n[5] Retreat\n[6] View Action Log\n";
 
-            // Save the current state before any action
             history.push({p.hp, p.sp, e.hp, e.state});
 
             int act = inputInt(1, 6);
@@ -342,7 +338,6 @@ void battle(Player &p) {
                 actionLog.push("Round " + to_string(round) + ": Player healed " + to_string(heal) + " HP.");
                 Sleep(2000);
             } else if (act == 4 && undoCount > 0 && history.size() > 1) {
-                // Pop the current state since it's current, then restore previous state
                 history.pop();
                 if (!history.empty()) {
                     BattleState s = history.top();
@@ -353,7 +348,7 @@ void battle(Player &p) {
                     undoCount--;
                     cout << "\nUndo successful! Restored previous state.\n";
                     Sleep(2000);
-                    continue; // Skip rest of loop to re-display state
+                    continue;
                 }
             } else if (act == 5) {
                 cout << "\nYou retreated from battle.\n";
@@ -379,7 +374,6 @@ void battle(Player &p) {
                 Sleep(2000);
             }
 
-            // Enemy's turn to attack
             int edmg = e.atk - p.def / 10;
             if (e.state == 2) {
                 edmg *= 2;
