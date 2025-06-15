@@ -155,3 +155,106 @@ void knapsack(int idx, int val, vector<Rune> &curr, vector<Rune> &opt) {
         curr.pop_back();
     }
 }
+bool isRuneUsed(const vector<Rune>& runes, const Rune& r) {
+    for (const auto& rune : runes) {
+        if (rune.name == r.name) return true;
+    }
+    return false;
+}
+
+void build(Player &p) {
+    system("cls");
+    cout << "===== Type Your Name =====\n";
+    cout << "Name: ";
+    getline(cin >> ws, p.name);
+    
+    vector<Rune> opt, curr;
+    maxPower = 0;
+    knapsack(0, 0, curr, opt);
+
+    int val = 0;
+    while (true) {
+        system("cls");
+        cout << "Choose Your Equipment\n";
+        cout << "1. Weapon : " << (p.weapon.name.empty() ? "empty" : p.weapon.name);
+        if (!p.weapon.name.empty()) cout << " [" << p.weapon.skill() << "]";
+        cout << "\n";
+        for (int i = 0; i < 4; ++i) {
+            cout << i + 2 << ". Rune " << i + 1 << ": ";
+            if (i < p.runes.size()) cout << p.runes[i].name << " [" << p.runes[i].hp << " hp, " << p.runes[i].atk << " atk, " << p.runes[i].def << " def, " << p.runes[i].value << "]" << "\n";
+            else cout << "empty\n";
+        }
+        cout << "Rune Value (" << val << "/7)\n";
+        p.updateStats();
+        cout << "hp : " << p.baseHp << "   atk : " << p.baseAtk << "   def : " << p.baseDef << "\n";
+        cout << "6. Start                   Power = " << (int)p.power() << "/" << (int)maxPower << "\n";
+
+        int choice = inputInt(1, 6);
+        if (choice == 1) {
+            system("cls");
+            cout << "Choose Your Weapon:\n";
+            for (int i = 0; i < weapons.size(); ++i)
+                cout << i + 1 << ". " << weapons[i].name << " [" << weapons[i].skill() << "]" << "\n";
+            int w = inputInt(1, weapons.size());
+            p.weapon = weapons[w - 1];
+        } else if (choice >= 2 && choice <= 5) {
+            system("cls");
+            cout << "Choose a Rune:\n";
+            for (int i = 0; i < allRunes.size(); ++i)
+                cout << i + 1 << ". " << allRunes[i].name << " [" << allRunes[i].hp  << " hp, "<< allRunes[i].atk << " atk, " << allRunes[i].def << " def, " << allRunes[i].value << "]\n";
+            int r = inputInt(1, allRunes.size());
+            Rune selected = allRunes[r - 1];
+            if (!isRuneUsed(p.runes, selected)) {
+                int newVal = val;
+                if (choice - 2 < p.runes.size()) newVal -= p.runes[choice - 2].value;
+                if (newVal + selected.value <= 7) {
+                    if (choice - 2 < p.runes.size()) {
+                        val -= p.runes[choice - 2].value;
+                        p.runes[choice - 2] = selected;
+                        val += selected.value;
+                    } else {
+                        p.runes.push_back(selected);
+                        val += selected.value;
+                    }
+                }
+            }
+        } else if (choice == 6 && !p.weapon.name.empty()) {
+            break;
+        }
+    }
+
+    p.updateStats();
+    double percent = (p.power() / maxPower) * 100.0;
+    cout << "Your build is " << (int)percent << "% optimal\n";
+    cout << "Press enter to continue...";
+    cin.ignore(); cin.get();
+}
+
+void saveScore(const string &name, int score) {
+    ofstream out("leaderboard.txt", ios::app);
+    out << name << " " << score << endl;
+    out.close();
+}
+
+void merge(vector<pair<string, int>> &arr, int l, int m, int r) {
+    vector<pair<string, int>> left(arr.begin() + l, arr.begin() + m + 1);
+    vector<pair<string, int>> right(arr.begin() + m + 1, arr.begin() + r + 1);
+    int i = 0, j = 0, k = l;
+    while (i < left.size() && j < right.size()) {
+        if (left[i].second > right[j].second)
+            arr[k++] = left[i++];
+        else
+            arr[k++] = right[j++];
+    }
+    while (i < left.size()) arr[k++] = left[i++];
+    while (j < right.size()) arr[k++] = right[j++];
+}
+
+void mergeSort(vector<pair<string, int>> &arr, int l, int r) {
+    if (l < r) {
+        int m = (l + r) / 2;
+        mergeSort(arr, l, m);
+        mergeSort(arr, m + 1, r);
+        merge(arr, l, m, r);
+    }
+}
