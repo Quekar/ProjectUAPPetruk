@@ -258,3 +258,189 @@ void mergeSort(vector<pair<string, int>> &arr, int l, int r) {
         merge(arr, l, m, r);
     }
 }
+
+void showLeaderboard() {
+    system("cls");
+    ifstream in("leaderboard.txt");
+    vector<pair<string, int>> scores;
+    string name;
+    int score;
+    while (in >> name >> score) scores.emplace_back(name, score);
+    in.close();
+
+    if (!scores.empty())
+        mergeSort(scores, 0, scores.size() - 1);
+
+    cout << "===== LEADERBOARD ====\n";
+    for (auto &s : scores)
+        cout << s.first << " : " << s.second << endl;
+    cout << "Press enter to return...";
+    cin.ignore(); cin.get();
+}
+
+void pause(){
+    Sleep(3000);
+    system("cls");
+}
+
+void battle(Player &p) {
+    queue<string> actionLog;
+    int round = 1;
+    system("cls");
+    while (true) {
+        Enemy e;
+        e.scale(round);
+        p.scaleStats(round);
+        p.sp = 3;
+        stack<BattleState> history;
+        int undoCount = 2;
+
+        while (p.hp > 0 && e.hp > 0) {
+            system("cls");
+            cout << "=== Round " << round << " ===\n";
+            cout << "=== Enemy hp: " << e.hp << "  atk: " << e.atk << "  def: " << e.def << " === \n";
+            cout << "=== Player hp: " << p.hp << "  atk: " << p.atk << "  def: " << p.def << " ===";
+            cout << "=== Sp: " << p.sp << " === Undo Remaining: " << undoCount << " ===\n";
+            cout << "[1] Basic Attack\n[2] Skill Attack\n[3] Heal (30% HP)\n[4] Undo\n[5] Retreat\n[6] View Action Log\n";
+
+            // Save the current state before any action
+            history.push({p.hp, p.sp, e.hp, e.state});
+
+            int act = inputInt(1, 6);
+
+            if (act == 1) {
+                int dmg = max(0, p.atk - e.def / 10);
+                e.hp -= dmg;
+                if (p.sp < 5) p.sp++;
+                cout << "\nYou used Basic Attack and dealt " << dmg << " damage!\n";
+                actionLog.push("Round " + to_string(round) + ": Player used Basic Attack and dealt " + to_string(dmg) + " damage.");
+                Sleep(2000);
+            } else if (act == 2 && p.sp > 0) {
+                int dmg = 0;
+                if (p.weapon.name == "Sword") dmg = 2 * p.atk;
+                else if (p.weapon.name == "Bow") dmg = 2 * (p.atk * 75 / 100);
+                else if (p.weapon.name == "Wand") dmg = (int)(1.6 * p.atk * (1 - 0.4));
+                else if (p.weapon.name == "Hammer") {
+                    dmg = (int)(1.75 * p.atk);
+                    int heal = p.maxHp * 10 / 100;
+                    p.hp = min(p.maxHp, p.hp + heal);
+                    cout << "\nHammer heals you for " << heal << " HP!\n";
+                    actionLog.push("Round " + to_string(round) + ": Hammer healed player for " + to_string(heal) + " HP.");
+                    Sleep(2000);
+                }
+                dmg -= e.def / 10;
+                e.hp -= max(0, dmg);
+                p.sp--;
+                cout << "\nYou used Skill Attack and dealt " << dmg << " damage!\n";
+                actionLog.push("Round " + to_string(round) + ": Player used Skill Attack (" + p.weapon.name + ") and dealt " + to_string(dmg) + " damage.");
+                Sleep(2000);
+            } else if (act == 3 && p.sp > 0) {
+                int heal = p.maxHp * 30 / 100;
+                p.hp = min(p.maxHp, p.hp + heal);
+                p.sp--;
+                cout << "\nYou used Heal and restored " << heal << " HP!\n";
+                actionLog.push("Round " + to_string(round) + ": Player healed " + to_string(heal) + " HP.");
+                Sleep(2000);
+            } else if (act == 4 && undoCount > 0 && history.size() > 1) {
+                // Pop the current state since it's current, then restore previous state
+                history.pop();
+                if (!history.empty()) {
+                    BattleState s = history.top();
+                    p.hp = s.playerHp;
+                    p.sp = s.playerSp;
+                    e.hp = s.enemyHp;
+                    e.state = s.enemyState;
+                    undoCount--;
+                    cout << "\nUndo successful! Restored previous state.\n";
+                    Sleep(2000);
+                    continue; // Skip rest of loop to re-display state
+                }
+            } else if (act == 5) {
+                cout << "\nYou retreated from battle.\n";
+                cout << "What a shame.\n";
+                cout << "Loading to Main Menu";
+                saveScore(p.name + "(Retreat)", p.score);
+                Sleep(2000);
+                return;
+            } else if (act == 6) {
+                system("cls");
+                cout << "===== Action Log =====\n";
+                queue<string> copy = actionLog;
+                while (!copy.empty()) {
+                    cout << copy.front() << endl;
+                    copy.pop();
+                }
+                cout << "\nPress enter to continue...";
+                cin.ignore(); cin.get();
+                continue;
+            } else {
+                cout << "\nOut of SP! You didn't do anything\n";
+                actionLog.push("Round " + to_string(round) + ": Player out of SP and didn't do anything");
+                Sleep(2000);
+            }
+
+            // Enemy's turn to attack
+            int edmg = e.atk - p.def / 10;
+            if (e.state == 2) {
+                edmg *= 2;
+                cout << "Enemy used a charged attack and dealt " << edmg << " damage!\n";
+                actionLog.push("Round " + to_string(round) + ": Enemy used a charged Attack and dealt " + to_string(edmg) + " damage.");
+                e.state++;
+                pause();
+            } else if (e.state == 3) {
+                int eheal = e.maxHp / 10;
+                e.hp = min(e.maxHp, e.hp + eheal);
+                cout << "Enemy healed for " << eheal << " HP!\n";
+                actionLog.push("Round " + to_string(round) + ": Enemy healed " + to_string(eheal) + " HP.");
+                e.state = 0;
+                pause();
+                continue;
+            } else {
+                cout << "Enemy used Basic Attack and dealt " << edmg << " damage!\n";
+                actionLog.push("Round " + to_string(round) + ": Enemy used Basic Attack and dealt " + to_string(edmg) + " damage.");
+                p.hp -= max(0, edmg);
+                e.state++;
+                pause();
+            }
+        }
+        if (p.hp <= 0) {
+            cout << "\nYou were defeated in battle.\n";
+            saveScore(p.name, p.score);
+            cout << "Press enter to continue...";
+            cin.ignore(); cin.get();
+            return;
+        } else {
+            cout << "You won this round!\n";
+            cout << "Going to the next round...\n";
+            pause();
+            p.score += round;
+            round++;
+        }
+    }
+}
+
+void mainMenu() {
+    while (true) {
+        system("cls");
+        cout << "===================================\n";
+        cout << "============= Welcome =============\n";
+        cout << "===================================\n";
+        cout << "[1] Main\n[2] Leaderboard\n[3] Exit\n";
+        
+        int choice = inputInt(1, 3);
+        if (choice == 1) {
+            Player p;
+            build(p);
+            battle(p);
+        } else if (choice == 2) {
+            showLeaderboard();
+        } else break;
+    }
+}
+
+int main() {
+    cout << "\033[33m";
+    mainMenu();
+    cout << "\033]0m";
+    return 0;
+}
