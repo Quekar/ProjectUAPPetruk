@@ -8,6 +8,6 @@ Andhika Akbar Pratama (2417051056)
 </br> Feliza Mutiara (2317051067)
 
 ##
-### Terimakasih / ありがとうございます
+### Terimakasih
 
 ![](https://github.com/Quekar/Gif-placeholder/blob/main/cat_gun.gif)
